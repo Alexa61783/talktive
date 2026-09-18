@@ -1,35 +1,63 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
-const { searchParams, origin } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams, origin } = requestUrl;
 
-const code = searchParams.get("code");
-const next = searchParams.get("next") || "/";
+  const code = searchParams.get("code");
+  const flowId = searchParams.get("sb_flow_id");
 
-if (!code) {
-return NextResponse.redirect(`${origin}/login?error=auth`);
-}
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=auth`);
+  }
 
-const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
+  const cookieStore = await cookies();
 
-const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
 
-if (error) {
-console.error("Auth callback error:", error);
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(
+              ({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              }
+            );
+          } catch (error) {
+            console.error(
+              "Cookie error:",
+              error
+            );
+          }
+        },
+      },
+    }
+  );
 
+  const { error } =
+    await supabase.auth.exchangeCodeForSession(
+      code,
+      flowId ? { flowId } : undefined
+    );
 
-return NextResponse.redirect(
-  `${origin}/login?error=auth`
-);
+  if (error) {
+    console.error(
+      "Auth callback error:",
+      error
+    );
 
+    return NextResponse.redirect(
+      `${origin}/login?error=auth`
+    );
+  }
 
-}
-
-return NextResponse.redirect(
-`${origin}${next.startsWith("/") ? next : "/"}`
-);
+  return NextResponse.redirect(`${origin}/`);
 }

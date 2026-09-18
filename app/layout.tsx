@@ -14,7 +14,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Talktive",
-  description: "Talktive AI",
+  description: "Talktive — your friendly AI companion.",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
+  icons: {
+    icon: "/ChatGPT%20Image%20Sep%2013,%202026,%2009_07_41%20AM.png",
+    apple: "/ChatGPT%20Image%20Sep%2013,%202026,%2009_07_41%20AM.png",
+  },
 };
 
 export default function RootLayout({
